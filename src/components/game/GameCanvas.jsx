@@ -263,11 +263,13 @@ function GameCanvasComponent({
           return;
         }
 
-        const canControl = currentGameState === 'RACING';
+        const isCountdown = currentGameState === 'COUNTDOWN';
+        const isRacing = currentGameState === 'RACING';
+        const canControl = isRacing;
         const rawInputs = canControl ? pollInputs() : { throttle: 0, brake: 0, steer: 0, handbrake: false, nitro: false };
 
         // Handle single pulse actions
-        if (consumePulse('resetCar')) {
+        if (consumePulse('resetCar') && isRacing) {
           const closest = engine.trackData?.getClosestSample(engine.playerPhysics.position);
           if (closest && closest.sample) {
             const resetPos = closest.sample.position.clone();
@@ -281,16 +283,29 @@ function GameCanvasComponent({
           engine.cameraSystem.cycleMode();
         }
 
-        if (consumePulse('pause') && currentGameState === 'RACING') {
+        if (consumePulse('pause') && isRacing) {
           onPause();
         }
 
         // 1. Update Player Physics
         const surfaceFriction = engine.weatherManager.surfaceFriction;
-        engine.playerPhysics.update(rawInputs, dt, surfaceFriction, engine.trackData);
+        if (isCountdown) {
+          // Lock player stationary on starting grid during countdown
+          engine.playerPhysics.velocity.set(0, 0, 0);
+          engine.playerPhysics.angularVelocity.set(0, 0, 0);
+          engine.playerPhysics.speed = 0;
+          engine.playerPhysics.speedKmh = 0;
+          engine.playerPhysics.gear = 1;
+          engine.playerPhysics.rpm = engine.playerPhysics.idleRpm;
+          engine.playerPhysics.throttle = 0;
+          engine.playerPhysics.brake = 0;
+          engine.playerPhysics.updateEngineAndGears(false, dt);
+        } else {
+          engine.playerPhysics.update(rawInputs, dt, surfaceFriction, engine.trackData);
+        }
 
-        // 2. Track & Vehicle Collisions
-        if (engine.collisionSystem) {
+        // 2. Track & Vehicle Collisions (only active during race)
+        if (isRacing && engine.collisionSystem) {
           engine.collisionSystem.resolveTrackBoundaries(engine.playerPhysics, (impact) => {
             audioManager.playCollision(impact.intensity);
             engine.cameraSystem.triggerShake(impact.intensity);
@@ -322,14 +337,16 @@ function GameCanvasComponent({
         }
 
         // 3. Update AI Opponents & Civilian Traffic
-        engine.trafficManager?.update(dt, engine.trackData, engine.playerPhysics.position);
-        engine.aiManager?.update(dt, engine.trackData, engine.playerPhysics, isNight, engine.trafficManager?.trafficCars);
+        if (isRacing) {
+          engine.trafficManager?.update(dt, engine.trackData, engine.playerPhysics.position);
+        }
+        engine.aiManager?.update(dt, engine.trackData, engine.playerPhysics, isNight, engine.trafficManager?.trafficCars, isRacing);
 
         // 4. Update Race Progress & Standings
         if (engine.trackManager) {
-          engine.trackManager.update(dt, engine.playerPhysics, engine.aiManager?.racers || [], currentGameState === 'RACING');
+          engine.trackManager.update(dt, engine.playerPhysics, engine.aiManager?.racers || [], isRacing);
 
-          if (engine.trackManager.isFinished && currentGameState === 'RACING') {
+          if (engine.trackManager.isFinished && isRacing) {
             onFinishRace({
               position: engine.trackManager.getPlayerPosition(),
               totalTime: engine.trackManager.totalRaceTime,

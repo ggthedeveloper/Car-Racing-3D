@@ -87,7 +87,7 @@ export function App() {
   // Restart Current Race
   const handleRestartRace = useCallback(() => {
     if (raceConfig) {
-      handleStartRace(raceConfig);
+      handleStartRace({ ...raceConfig, restartKey: Date.now() });
     }
   }, [raceConfig, handleStartRace]);
 

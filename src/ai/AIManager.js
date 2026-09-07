@@ -39,14 +39,21 @@ export class AIManager {
       const carDef = JSON.parse(JSON.stringify(baseCarDef));
       if (playerCarDef && playerCarDef.physics) {
         const pPhys = playerCarDef.physics;
-        // Balance engine power within +/- 6% of player car power
-        const powerVariance = 0.94 + (Math.random() * 0.10);
+        // Balance engine power within +/- 4% of player car power
+        const powerVariance = 0.94 + (Math.random() * 0.08);
         carDef.physics.enginePower = Math.round(pPhys.enginePower * powerVariance);
-        // Balance top speed within +/- 4% of player top speed
-        const speedVariance = 0.96 + (Math.random() * 0.08);
+        // Balance top speed within +/- 3% of player top speed
+        const speedVariance = 0.96 + (Math.random() * 0.06);
         carDef.physics.topSpeedKmh = Math.round(pPhys.topSpeedKmh * speedVariance);
         // Balance mass close to player
-        carDef.physics.mass = Math.round(pPhys.mass * (0.96 + Math.random() * 0.08));
+        carDef.physics.mass = Math.round(pPhys.mass * (0.97 + Math.random() * 0.06));
+        // Normalize torque curve multiplier so high-tier AI doesn't have 50% unfair torque advantage
+        carDef.physics.torqueCurveMultiplier = pPhys.torqueCurveMultiplier || 1.0;
+        // Balance tire grip to match player
+        carDef.physics.tireGripFront = pPhys.tireGripFront * (0.96 + Math.random() * 0.06);
+        carDef.physics.tireGripRear = pPhys.tireGripRear * (0.96 + Math.random() * 0.06);
+        carDef.physics.dragCoeff = pPhys.dragCoeff;
+        carDef.physics.downforceCoeff = pPhys.downforceCoeff;
       }
 
       const ai = new AIRacer(`ai_${i}`, profile.name, carDef, profile.skill, this.difficulty);
@@ -54,6 +61,13 @@ export class AIManager {
       // Grid position: grid[0] is player (pole), grid[1..7] are AI
       const gridSlot = gridPositions[i + 1] || gridPositions[0];
       ai.physics.reset(gridSlot.position.clone(), gridSlot.yaw);
+      ai.physics.gear = 1;
+      ai.physics.speed = 0;
+      ai.physics.speedKmh = 0;
+      ai.physics.rpm = ai.physics.idleRpm;
+      ai.physics.throttle = 0;
+      ai.physics.brake = 0;
+      ai.launchTimer = 0;
 
       // Build 3D mesh
       const carMeshObj = CarBuilder.buildCarMesh(
@@ -71,12 +85,32 @@ export class AIManager {
     }
   }
 
-  update(dt, trackData, playerVehicle, isNightOrFog = false, trafficCars = []) {
+  update(dt, trackData, playerVehicle, isNightOrFog = false, trafficCars = [], isRacing = true) {
+    if (!isRacing) {
+      // Hold all racers stationary on the starting grid during countdown
+      for (let i = 0; i < this.racers.length; i++) {
+        const ai = this.racers[i];
+        ai.physics.velocity.set(0, 0, 0);
+        ai.physics.angularVelocity.set(0, 0, 0);
+        ai.physics.speed = 0;
+        ai.physics.speedKmh = 0;
+        ai.physics.gear = 1;
+        ai.physics.rpm = ai.physics.idleRpm;
+        ai.physics.throttle = 0;
+        ai.physics.brake = 0;
+        ai.launchTimer = 0;
+        if (ai.visuals) {
+          ai.visuals.update(ai.physics, isNightOrFog);
+        }
+      }
+      return;
+    }
+
     const allCars = [playerVehicle, ...this.racers];
 
     for (let i = 0; i < this.racers.length; i++) {
       const ai = this.racers[i];
-      ai.update(dt, trackData, allCars, trafficCars);
+      ai.update(dt, trackData, allCars, trafficCars, isRacing);
 
       // Collisions with barriers
       if (this.collisionSystem) {
