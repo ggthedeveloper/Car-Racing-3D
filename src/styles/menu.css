@@ -1,0 +1,483 @@
+.menu-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 30px 40px;
+  z-index: 10;
+  pointer-events: auto;
+  overflow-y: auto;
+  background: radial-gradient(circle at 50% 30%, rgba(15, 23, 42, 0.4) 0%, rgba(3, 7, 18, 0.85) 100%);
+}
+
+.menu-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.player-stat-badge {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-cyan);
+  border-radius: 20px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.credits-badge {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.2);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-size: 1.1rem;
+}
+
+.stat-label {
+  font-family: var(--font-tech);
+  font-weight: 700;
+  color: var(--text-white);
+  font-size: 0.95rem;
+}
+
+.xp-mini-bar {
+  width: 50px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xp-mini-fill {
+  height: 100%;
+  background: var(--cyan-glow);
+}
+
+/* MAIN MENU SCREEN */
+.main-menu-screen {
+  justify-content: space-between;
+}
+
+.main-hero {
+  margin-top: 4vh;
+}
+
+.hero-sub {
+  font-family: var(--font-tech);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--cyan-glow);
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 4.8rem;
+  font-weight: 900;
+  line-height: 0.95;
+  margin: 6px 0 16px 0;
+  text-transform: uppercase;
+}
+
+.title-turbo {
+  color: #ffffff;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.5);
+}
+
+.title-rush {
+  color: var(--cyan-glow);
+  text-shadow: 0 0 35px rgba(0, 229, 255, 0.8);
+}
+
+.title-3d {
+  font-size: 2.2rem;
+  letter-spacing: 8px;
+  color: var(--accent-gold);
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+  margin-top: 4px;
+}
+
+.hero-divider {
+  width: 220px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--cyan-glow) 0%, transparent 100%);
+  margin-bottom: 24px;
+}
+
+.menu-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  margin-bottom: 6vh;
+}
+
+.menu-nav-btn {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-cyan);
+  color: var(--text-white);
+  font-family: var(--font-tech);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 14px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.menu-nav-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: var(--cyan-glow);
+  transform: translateX(8px);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.35);
+}
+
+.menu-nav-btn.primary-play-btn {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(90deg, #0284c7 0%, #00e5ff 100%);
+  color: #030712;
+  border: none;
+  box-shadow: 0 6px 30px rgba(0, 229, 255, 0.5);
+}
+
+.menu-nav-btn.primary-play-btn:hover {
+  transform: translateX(8px) scale(1.02);
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.8);
+}
+
+.menu-footer {
+  font-family: var(--font-tech);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* TRACK SELECT SCREEN */
+.track-layout-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+  flex: 1;
+}
+
+.track-list-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.track-card {
+  background: var(--bg-panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 16px 20px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.track-card:hover {
+  border-color: var(--border-cyan);
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.track-card.active {
+  border-color: var(--cyan-glow);
+  background: rgba(14, 165, 233, 0.15);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+}
+
+.track-card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.track-diff-badge {
+  font-family: var(--font-tech);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  background: rgba(251, 191, 36, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.track-km {
+  font-family: var(--font-tech);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.track-card-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-white);
+  margin-bottom: 4px;
+}
+
+.track-card-tagline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.track-details-col {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-cyan);
+  border-radius: 14px;
+  padding: 28px;
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.track-theme-tag {
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan-glow);
+}
+
+.track-info-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--text-white);
+  margin: 4px 0 8px 0;
+}
+
+.track-info-desc {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  max-width: 600px;
+}
+
+.modifiers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.mod-label {
+  font-family: var(--font-tech);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.option-chip {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-white);
+  font-family: var(--font-tech);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-chip:hover {
+  border-color: var(--cyan-glow);
+}
+
+.option-chip.active {
+  background: var(--cyan-glow);
+  color: #030712;
+  font-weight: 700;
+  border-color: var(--cyan-glow);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+}
+
+.start-race-action-btn {
+  background: linear-gradient(90deg, #0284c7 0%, #00e5ff 100%);
+  color: #030712;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  padding: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 30px rgba(0, 229, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.start-race-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 45px rgba(0, 229, 255, 0.85);
+}
+
+/* CAR SELECT SCREEN */
+.car-select-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.car-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.car-card-item {
+  background: var(--bg-panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 18px;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.car-card-item:hover {
+  border-color: var(--border-cyan);
+  transform: translateY(-4px);
+}
+
+.car-card-item.active {
+  border-color: var(--cyan-glow);
+  background: rgba(14, 165, 233, 0.15);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.3);
+}
+
+.car-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.car-card-class {
+  font-family: var(--font-tech);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cyan-glow);
+}
+
+.lock-icon {
+  font-size: 1.1rem;
+}
+
+.car-card-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--text-white);
+  margin-bottom: 4px;
+}
+
+.car-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.m-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-tech);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.m-bar {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.m-fill {
+  height: 100%;
+  background: var(--cyan-glow);
+}
+
+.m-fill.drift {
+  background: var(--accent-gold);
+}
+
+.car-select-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-cyan);
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text-white);
+  font-family: var(--font-tech);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.car-select-btn.selected {
+  background: var(--cyan-glow);
+  color: #030712;
+  border: none;
+}
+
+.car-buy-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #d97706 0%, #fbbf24 100%);
+  color: #030712;
+  font-family: var(--font-tech);
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+}
+
+.car-buy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.car-select-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}

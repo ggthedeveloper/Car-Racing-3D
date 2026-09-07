@@ -1,0 +1,341 @@
+.garage-screen {
+  justify-content: flex-start;
+}
+
+.garage-title-tag h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  color: var(--text-white);
+}
+
+.garage-main-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 28px;
+  flex: 1;
+  min-height: 0;
+}
+
+.garage-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+
+/* LEFT PANEL */
+.car-header-badge {
+  margin-bottom: 20px;
+}
+
+.car-class-tag {
+  font-family: var(--font-tech);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan-glow);
+}
+
+.car-name-big {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--text-white);
+  margin: 4px 0;
+}
+
+.car-tagline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.car-spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.spec-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.spec-label {
+  width: 105px;
+  color: var(--text-muted);
+}
+
+.spec-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.spec-bar-fill {
+  height: 100%;
+  background: var(--cyan-glow);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.spec-bar-fill.drift-fill {
+  background: var(--accent-gold);
+}
+
+.spec-num {
+  width: 75px;
+  text-align: right;
+  color: var(--text-white);
+}
+
+.panel-subhead {
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--cyan-glow);
+  margin-bottom: 10px;
+}
+
+.fleet-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fleet-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fleet-card:hover {
+  border-color: var(--cyan-glow);
+}
+
+.fleet-card.selected {
+  border-color: var(--cyan-glow);
+  background: rgba(14, 165, 233, 0.2);
+}
+
+.fleet-card-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--text-white);
+}
+
+.fleet-card-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.fleet-buy-btn {
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 4px 12px;
+  background: linear-gradient(90deg, #d97706 0%, #fbbf24 100%);
+  color: #030712;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* RIGHT PANEL: TABS */
+.garage-tab-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.garage-tab-btn {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-family: var(--font-tech);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.garage-tab-btn.active {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: var(--cyan-glow);
+  color: var(--text-white);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.25);
+}
+
+/* UPGRADES LIST */
+.tuning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.upgrade-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.upgrade-card:hover {
+  border-color: var(--border-cyan);
+}
+
+.upgrade-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-white);
+  margin-bottom: 2px;
+}
+
+.upgrade-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.stage-pips {
+  display: flex;
+  gap: 6px;
+}
+
+.stage-pip {
+  font-family: var(--font-tech);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.stage-pip.filled {
+  background: var(--cyan-glow);
+  color: #030712;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+}
+
+.upgrade-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-tech);
+  transition: all 0.2s ease;
+}
+
+.upgrade-btn.can-afford {
+  background: linear-gradient(135deg, #0284c7 0%, #00e5ff 100%);
+  color: #030712;
+  box-shadow: 0 4px 16px rgba(0, 229, 255, 0.4);
+}
+
+.upgrade-btn.can-afford:hover {
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.7);
+  transform: translateY(-2px);
+}
+
+.upgrade-btn.cant-afford {
+  background: rgba(51, 65, 85, 0.6);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.upgrade-cost {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.upgrade-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.max-tag {
+  font-family: var(--font-tech);
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--accent-gold);
+  background: rgba(251, 191, 36, 0.15);
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+/* CUSTOMIZATION TAB */
+.custom-options {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.custom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-label {
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.color-swatch {
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.08);
+}
+
+.color-swatch.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 16px #ffffff;
+}
