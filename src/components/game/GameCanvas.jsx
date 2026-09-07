@@ -153,7 +153,7 @@ function GameCanvasComponent({
 
       // AI Racers
       aiManager = new AIManager(scene, collisionSystem, raceConfig?.difficulty || 'NORMAL');
-      aiManager.spawnGrid(gridSlots, 7);
+      aiManager.spawnGrid(gridSlots, 7, currentCarDef);
 
       // Civilian Traffic on city & highway tracks
       if (currentTrackDef.features?.hasTraffic) {

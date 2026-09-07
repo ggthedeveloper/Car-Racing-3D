@@ -27,13 +27,28 @@ export class AIManager {
     this.racers.forEach((r) => r.applyDifficulty(difficulty));
   }
 
-  spawnGrid(gridPositions, count = 7) {
+  spawnGrid(gridPositions, count = 7, playerCarDef = null) {
     this.cleanup();
 
     const spawnCount = Math.min(count, AI_PROFILES.length);
     for (let i = 0; i < spawnCount; i++) {
       const profile = AI_PROFILES[i];
-      const carDef = CAR_DEFINITIONS[profile.carIndex % CAR_DEFINITIONS.length];
+      const baseCarDef = CAR_DEFINITIONS[profile.carIndex % CAR_DEFINITIONS.length];
+
+      // Deep clone to balance AI physics to player's car tier
+      const carDef = JSON.parse(JSON.stringify(baseCarDef));
+      if (playerCarDef && playerCarDef.physics) {
+        const pPhys = playerCarDef.physics;
+        // Balance engine power within +/- 6% of player car power
+        const powerVariance = 0.94 + (Math.random() * 0.10);
+        carDef.physics.enginePower = Math.round(pPhys.enginePower * powerVariance);
+        // Balance top speed within +/- 4% of player top speed
+        const speedVariance = 0.96 + (Math.random() * 0.08);
+        carDef.physics.topSpeedKmh = Math.round(pPhys.topSpeedKmh * speedVariance);
+        // Balance mass close to player
+        carDef.physics.mass = Math.round(pPhys.mass * (0.96 + Math.random() * 0.08));
+      }
+
       const ai = new AIRacer(`ai_${i}`, profile.name, carDef, profile.skill, this.difficulty);
 
       // Grid position: grid[0] is player (pole), grid[1..7] are AI

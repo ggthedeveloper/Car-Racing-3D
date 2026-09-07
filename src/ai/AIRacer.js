@@ -96,38 +96,66 @@ export class AIRacer {
     const normalizedSteer = clamp(targetSteerAngle / (this.physics.maxSteerAngle || 0.5), -1, 1);
     this.steerSmoothed = damp(this.steerSmoothed, normalizedSteer, 8 * this.skill, dt);
 
-    // --- 2. CORNER SPEED & BRAKING CALCULATION ---
+    // --- 2. DYNAMIC RUBBER-BANDING & RACING PACING ---
+    const player = otherCars && otherCars.length > 0 ? otherCars[0] : null;
+    let rubberBandFactor = 1.0;
+    if (player && player.position) {
+      const toPlayer = new THREE.Vector3().subVectors(player.position, carPos);
+      const forwardDistToPlayer = toPlayer.dot(this.physics.forward); // > 0: player ahead; < 0: AI ahead
+
+      if (this.difficulty !== 'EXPERT') {
+        if (forwardDistToPlayer < -25) {
+          // AI is more than 25m ahead: ease off so races remain close and competitive
+          const lead = Math.min(100, Math.abs(forwardDistToPlayer) - 25);
+          rubberBandFactor = Math.max(0.82, 1.0 - (lead / 160));
+        } else if (forwardDistToPlayer > 35) {
+          // AI is more than 35m behind: moderate catch-up without warp spikes
+          const lag = Math.min(80, forwardDistToPlayer - 35);
+          rubberBandFactor = Math.min(1.06, 1.0 + (lag / 250));
+        }
+      }
+    }
+
+    // --- 3. CORNER SPEED & BRAKING CALCULATION ---
     const farIdx = (currentIdx + lookSteps * 2) % samples.length;
     const farSample = samples[farIdx];
     const curvatureAngle = Math.abs(targetSample.tangent.angleTo(farSample.tangent));
 
-    let safeSpeedKmh = this.physics.topSpeedKmh * this.speedFactor;
-    if (curvatureAngle > 0.25) {
-      const cornerTightness = clamp(curvatureAngle / 1.2, 0, 1);
-      safeSpeedKmh = THREE.MathUtils.lerp(this.physics.topSpeedKmh * 0.85, 95 * this.corneringGrip, cornerTightness);
+    let safeSpeedKmh = this.physics.topSpeedKmh * this.speedFactor * rubberBandFactor;
+    if (curvatureAngle > 0.22) {
+      const cornerTightness = clamp(curvatureAngle / 1.15, 0, 1);
+      safeSpeedKmh = THREE.MathUtils.lerp(safeSpeedKmh * 0.82, 88 * this.corneringGrip, cornerTightness);
     }
 
-    // --- 3. THROTTLE & BRAKE INPUTS ---
+    // Overtake speed differential cap: prevents AI from unrealistically rocketing past
+    if (this.nearestObstacleSpeedKmh !== null && this.nearestObstacleSpeedKmh < 320) {
+      const maxPassDelta = this.difficulty === 'EXPERT' ? 18 : this.difficulty === 'HARD' ? 14 : 10;
+      safeSpeedKmh = Math.min(safeSpeedKmh, this.nearestObstacleSpeedKmh + maxPassDelta);
+    }
+
+    // --- 4. THROTTLE & BRAKE INPUTS ---
     let throttle = 0;
     let brake = 0;
     let nitro = false;
 
     if (this.physics.speedKmh < safeSpeedKmh - 5) {
-      throttle = 1.0;
+      throttle = clamp((safeSpeedKmh - this.physics.speedKmh) / 22, 0.6, 1.0);
       brake = 0.0;
-      // Use nitro on straights or when drafting on Hard/Expert
-      if ((curvatureAngle < 0.15 || this.isDrafting) && this.physics.speedKmh > 120 && this.aggression > 0.75 && Math.random() < 0.03) {
-        nitro = true;
+      // Strategic nitro: only on Hard/Expert on open straights, never blasting immediately beside the player
+      if ((this.difficulty === 'HARD' || this.difficulty === 'EXPERT') && this.aggression > 0.8) {
+        if (curvatureAngle < 0.08 && this.physics.speedKmh > 140 && Math.random() < 0.01) {
+          nitro = true;
+        }
       }
-    } else if (this.physics.speedKmh > safeSpeedKmh + 8) {
+    } else if (this.physics.speedKmh > safeSpeedKmh + 4) {
       throttle = 0.0;
-      brake = clamp((this.physics.speedKmh - safeSpeedKmh) / 25, 0.4, 1.0);
+      brake = clamp((this.physics.speedKmh - safeSpeedKmh) / 20, 0.35, 0.95);
     } else {
-      throttle = 0.48;
+      throttle = 0.44;
       brake = 0.0;
     }
 
-    // --- 4. RECOVERY FROM STALL OR SPIN ---
+    // --- 5. RECOVERY FROM STALL OR SPIN ---
     if (this.physics.speedKmh < 8 && throttle > 0.5) {
       this.recoverTimer += dt;
       if (this.recoverTimer > 2.5) {
@@ -155,6 +183,7 @@ export class AIRacer {
   evaluateOvertake(carPos, targetSample, allObstacles, roadWidth) {
     let obstacleAhead = false;
     let obstacleLateral = 0;
+    let nearestSpeed = 999;
     this.isDrafting = false;
 
     for (let i = 0; i < allObstacles.length; i++) {
@@ -168,9 +197,12 @@ export class AIRacer {
       if (dist < 26) {
         const toOther = new THREE.Vector3().subVectors(otherPos, carPos);
         const forwardDot = toOther.dot(this.physics.forward);
-        if (forwardDot > 1.8) {
+        if (forwardDot > 1.2) {
           obstacleAhead = true;
           obstacleLateral = toOther.dot(this.physics.right);
+
+          const otherSpeed = other.physics ? other.physics.speedKmh : (other.speedKmh || 120);
+          if (otherSpeed < nearestSpeed) nearestSpeed = otherSpeed;
 
           // Slipstream drafting detection
           if (dist < 18 && Math.abs(obstacleLateral) < 2.0) {
@@ -181,10 +213,12 @@ export class AIRacer {
       }
     }
 
+    this.nearestObstacleSpeedKmh = obstacleAhead ? nearestSpeed : null;
+
     if (obstacleAhead) {
       // Swerve into passing lane
       const evadeDir = obstacleLateral >= 0 ? -1 : 1;
-      this.overtakeOffset = damp(this.overtakeOffset, evadeDir * Math.min(5.5, roadWidth * 0.32), 5, 0.03);
+      this.overtakeOffset = damp(this.overtakeOffset, evadeDir * Math.min(5.0, roadWidth * 0.30), 4.5, 0.03);
     } else {
       this.overtakeOffset = damp(this.overtakeOffset, 0, 2, 0.03);
     }
