@@ -14,6 +14,8 @@ import { ParticleSystem } from '../../effects/ParticleSystem';
 import { SkidmarkSystem } from '../../effects/SkidmarkSystem';
 import { WeatherManager } from '../../effects/WeatherManager';
 import { TimeOfDayManager } from '../../effects/TimeOfDayManager';
+import { TrafficManager } from '../../ai/TrafficManager';
+import { SpeedLinesSystem } from '../../effects/SpeedLinesSystem';
 import { audioManager } from '../../audio/AudioManager';
 
 function GameCanvasComponent({
@@ -28,6 +30,7 @@ function GameCanvasComponent({
   onPause
 }) {
   const mountRef = useRef(null);
+  const speedLinesCanvasRef = useRef(null);
   const engineRef = useRef(null);
   const gameStateRef = useRef(gameState);
   gameStateRef.current = gameState;
@@ -93,6 +96,14 @@ function GameCanvasComponent({
     const weatherManager = new WeatherManager(scene);
     const timeOfDayManager = new TimeOfDayManager(scene, dirLight, ambientLight);
 
+    // 2D Speed Lines canvas overlay system
+    let speedLinesSystem = null;
+    if (speedLinesCanvasRef.current) {
+      speedLinesCanvasRef.current.width = container.clientWidth;
+      speedLinesCanvasRef.current.height = container.clientHeight;
+      speedLinesSystem = new SpeedLinesSystem(speedLinesCanvasRef.current);
+    }
+
     // --- 4. BUILD SCENE BASED ON GAME STATE ---
     let currentTrackDef = null;
     let trackMeshObj = null;
@@ -101,6 +112,7 @@ function GameCanvasComponent({
     let playerPhysics = null;
     let playerVisuals = null;
     let aiManager = null;
+    let trafficManager = null;
 
     const currentCarDef = CAR_DEFINITIONS.find((c) => c.id === userData.selectedCarId) || CAR_DEFINITIONS[0];
     const custom = userData.carCustomizations[currentCarDef.id] || {};
@@ -142,6 +154,13 @@ function GameCanvasComponent({
       // AI Racers
       aiManager = new AIManager(scene, collisionSystem, raceConfig?.difficulty || 'NORMAL');
       aiManager.spawnGrid(gridSlots, 7);
+
+      // Civilian Traffic on city & highway tracks
+      if (currentTrackDef.features?.hasTraffic) {
+        trafficManager = new TrafficManager(scene);
+        const trafficCount = settings.graphics?.quality === 'LOW' ? 8 : 14;
+        trafficManager.spawnTraffic(trackMeshObj.trackData, trafficCount);
+      }
 
       audioManager.startMusic();
     } else {
@@ -195,12 +214,14 @@ function GameCanvasComponent({
       skidmarkSystem,
       weatherManager,
       timeOfDayManager,
+      speedLinesSystem,
       trackData: trackMeshObj?.trackData,
       trackManager,
       collisionSystem,
       playerPhysics,
       playerVisuals,
       aiManager,
+      trafficManager,
       isRacingMode
     };
 
@@ -210,6 +231,9 @@ function GameCanvasComponent({
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+      if (speedLinesSystem) {
+        speedLinesSystem.resize(container.clientWidth, container.clientHeight);
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -218,6 +242,8 @@ function GameCanvasComponent({
     let lastTime = performance.now();
     let showroomAngle = 0;
     let telemetryThrottleTimer = 0;
+    let prevNitroTier = 0;
+    let prevIsShifting = false;
 
     const gameLoop = (now) => {
       animId = requestAnimationFrame(gameLoop);
@@ -229,7 +255,6 @@ function GameCanvasComponent({
       if (!engine) return;
 
       const isNight = engine.timeOfDayManager.isNightOrDark();
-
       const currentGameState = gameStateRef.current;
 
       if (isRacingMode && engine.playerPhysics) {
@@ -243,7 +268,6 @@ function GameCanvasComponent({
 
         // Handle single pulse actions
         if (consumePulse('resetCar')) {
-          // Reset car to track center facing forward
           const closest = engine.trackData?.getClosestSample(engine.playerPhysics.position);
           if (closest && closest.sample) {
             const resetPos = closest.sample.position.clone();
@@ -281,10 +305,25 @@ function GameCanvasComponent({
               engine.particleSystem.emitCollisionSparks(impact.position, impact.normal);
             });
           });
+
+          // Collisions between player and civilian traffic
+          if (engine.trafficManager) {
+            engine.trafficManager.trafficCars.forEach((tc) => {
+              const col = engine.collisionSystem.resolveVehicleTraffic(engine.playerPhysics, tc, (impact) => {
+                audioManager.playCollision(impact.intensity);
+                engine.cameraSystem.triggerShake(impact.intensity * 0.85);
+                engine.particleSystem.emitCollisionSparks(impact.position, impact.normal);
+              });
+              if (col && col.nearMiss) {
+                audioManager.playBlowOffValve();
+              }
+            });
+          }
         }
 
-        // 3. Update AI Opponents
-        engine.aiManager?.update(dt, engine.trackData, engine.playerPhysics, isNight);
+        // 3. Update AI Opponents & Civilian Traffic
+        engine.trafficManager?.update(dt, engine.trackData, engine.playerPhysics.position);
+        engine.aiManager?.update(dt, engine.trackData, engine.playerPhysics, isNight, engine.trafficManager?.trafficCars);
 
         // 4. Update Race Progress & Standings
         if (engine.trackManager) {
@@ -312,14 +351,15 @@ function GameCanvasComponent({
           if (rearWheelL && rearWheelL.steerPivot) rearWheelL.steerPivot.getWorldPosition(lPos);
           if (rearWheelR && rearWheelR.steerPivot) rearWheelR.steerPivot.getWorldPosition(rPos);
 
-          engine.particleSystem.emitTireSmoke(lPos, engine.playerPhysics.velocity, 1.2);
-          engine.particleSystem.emitTireSmoke(rPos, engine.playerPhysics.velocity, 1.2);
+          const surfParticle = engine.playerPhysics.currentSurface?.particle || 'smoke';
+          engine.particleSystem.emitTireSmoke(lPos, engine.playerPhysics.velocity, 1.2, surfParticle);
+          engine.particleSystem.emitTireSmoke(rPos, engine.playerPhysics.velocity, 1.2, surfParticle);
           engine.skidmarkSystem.addSkid(lPos, rPos, 1.0);
         } else {
           engine.skidmarkSystem.resetStreak();
         }
 
-        // 6. FX: Exhaust Nitro Flames
+        // 6. FX: Exhaust Nitro Flames (Multi-tier)
         const leftFlamePt = new THREE.Vector3();
         const rightFlamePt = new THREE.Vector3();
         if (engine.playerVisuals?.meshObj?.leftFlamePoint) {
@@ -330,7 +370,8 @@ function GameCanvasComponent({
           leftFlamePt,
           rightFlamePt,
           engine.playerPhysics.forward,
-          engine.playerPhysics.nitroActive
+          engine.playerPhysics.nitroActive,
+          engine.playerPhysics.nitroTier
         );
 
         // 7. FX: Weather & Lightning
@@ -338,7 +379,19 @@ function GameCanvasComponent({
         const isRaining = ['RAIN', 'STORM'].includes(engine.weatherManager.currentMode);
         engine.particleSystem.update(dt, engine.camera.position, isRaining);
 
-        // 8. Update Audio
+        // 8. 2D Speed Lines Overlay Update
+        engine.speedLinesSystem?.update(dt, engine.playerPhysics.speedKmh, engine.playerPhysics.nitroTier);
+
+        // 9. Update Audio & Sound Events
+        if (engine.playerPhysics.nitroTier === 2 && prevNitroTier !== 2) {
+          audioManager.playPerfectNitro();
+        }
+        if (engine.playerPhysics.isShifting && !prevIsShifting) {
+          audioManager.playBlowOffValve();
+        }
+        prevNitroTier = engine.playerPhysics.nitroTier;
+        prevIsShifting = engine.playerPhysics.isShifting;
+
         audioManager.updateEngine(
           engine.playerPhysics.rpm,
           rawInputs.throttle,
@@ -350,9 +403,9 @@ function GameCanvasComponent({
           engine.playerPhysics.isDrifting
         );
         audioManager.updateWind(engine.playerPhysics.speedKmh);
-        audioManager.setNitroActive(engine.playerPhysics.nitroActive);
+        audioManager.setNitroActive(engine.playerPhysics.nitroActive, engine.playerPhysics.nitroTier);
 
-        // 9. Update Player Visuals & Dynamic Camera
+        // 10. Update Player Visuals & Dynamic Camera
         engine.playerVisuals?.update(engine.playerPhysics, isNight);
         engine.cameraSystem.update(dt, engine.playerPhysics);
 
@@ -364,7 +417,7 @@ function GameCanvasComponent({
         );
         dirLight.target.position.copy(engine.playerPhysics.position);
 
-        // 10. Direct HUD Telemetry Throttle
+        // 11. Direct HUD Telemetry Throttle
         telemetryThrottleTimer += dt;
         if (telemetryThrottleTimer > 0.066) { // ~15 fps HUD sync
           telemetryThrottleTimer = 0;
@@ -375,6 +428,10 @@ function GameCanvasComponent({
               redlineRpm: engine.playerPhysics.redlineRpm,
               gear: engine.playerPhysics.gear,
               nitro: engine.playerPhysics.nitroAmount,
+              nitroTier: engine.playerPhysics.nitroTier,
+              isPerfectNitroReady: engine.playerPhysics.isPerfectNitroReady,
+              isDrafting: engine.playerPhysics.isDrafting,
+              currentSurface: engine.playerPhysics.currentSurface?.name || 'Asphalt',
               damage: engine.playerPhysics.damage,
               position: engine.trackManager?.getPlayerPosition() || 1,
               totalRacers: 8,
@@ -390,6 +447,7 @@ function GameCanvasComponent({
               playerPos: engine.playerPhysics.position,
               playerYaw: engine.playerPhysics.rotation.y,
               aiPositions: engine.aiManager?.racers.map((r) => ({ position: r.physics.position })) || [],
+              trafficPositions: engine.trafficManager?.trafficCars.map((c) => ({ position: c.position })) || [],
               trackData: engine.trackData
             });
           }
@@ -420,6 +478,7 @@ function GameCanvasComponent({
       window.removeEventListener('resize', handleResize);
       audioManager.stopMusic();
 
+      engineRef.current?.trafficManager?.cleanup();
       engineRef.current?.aiManager?.cleanup();
       engineRef.current?.playerVisuals?.dispose();
 
@@ -437,7 +496,8 @@ function GameCanvasComponent({
     userData.carCustomizations,
     userData.carUpgrades,
     settings.graphics?.shadows,
-    settings.graphics?.antialiasing
+    settings.graphics?.antialiasing,
+    settings.graphics?.quality
   ]);
 
   return (
@@ -445,7 +505,13 @@ function GameCanvasComponent({
       ref={mountRef}
       className="game-canvas-container"
       style={{ width: '100vw', height: '100vh', position: 'absolute', inset: 0, overflow: 'hidden' }}
-    />
+    >
+      <canvas
+        ref={speedLinesCanvasRef}
+        className="speed-lines-canvas"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}
+      />
+    </div>
   );
 }
 

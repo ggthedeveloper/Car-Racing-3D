@@ -217,6 +217,14 @@ export function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      {/* DEVELOPER CREDIT BADGE ON ALL MENU INTERFACES */}
+      {[GAME_STATES.MENU, GAME_STATES.GARAGE, GAME_STATES.CAR_SELECT, GAME_STATES.TRACK_SELECT].includes(gameState) && (
+        <div className="menu-author-credit">
+          <span className="credit-lead">Developed by</span>
+          <span className="credit-author">Gaurav Gautam</span>
+        </div>
+      )}
     </div>
   );
 }

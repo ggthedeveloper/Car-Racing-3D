@@ -61,8 +61,8 @@ export class AIRacer {
     }
   }
 
-  update(dt, trackData, otherCars = []) {
-    if (!trackData || !trackData.samples) return;
+  update(dt, trackData, otherCars = [], trafficCars = []) {
+    if (!trackData || !trackData.samples || trackData.samples.length === 0) return;
 
     const carPos = this.physics.position;
     const closest = trackData.getClosestSample(carPos);
@@ -72,13 +72,13 @@ export class AIRacer {
     const currentIdx = closest.index;
 
     // --- 1. LOOKAHEAD TARGET POINT ALONG RACING LINE ---
-    // Sample spline ahead based on current speed
     const lookSteps = Math.max(10, Math.floor(this.lookaheadDist * (1 + this.physics.speed / 40)));
     const targetIdx = (currentIdx + lookSteps) % samples.length;
     const targetSample = samples[targetIdx];
 
-    // Overtake logic: scan if someone is directly ahead
-    this.evaluateOvertake(carPos, targetSample, otherCars, trackData.roadWidth);
+    // Overtake & Traffic avoidance logic
+    const allObstacles = [...otherCars, ...(trafficCars || [])];
+    this.evaluateOvertake(carPos, targetSample, allObstacles, trackData.roadWidth);
 
     // Desired target position on the road
     const effectiveOffset = clamp(this.laneOffset + this.overtakeOffset, -trackData.roadWidth * 0.38, trackData.roadWidth * 0.38);
@@ -86,7 +86,6 @@ export class AIRacer {
 
     // Vector to target point
     const toTarget = new THREE.Vector3().subVectors(targetPoint, carPos);
-    const distToTarget = toTarget.length();
 
     // Project toTarget onto car's local axes
     const localTargetX = toTarget.dot(this.physics.right);
@@ -98,15 +97,12 @@ export class AIRacer {
     this.steerSmoothed = damp(this.steerSmoothed, normalizedSteer, 8 * this.skill, dt);
 
     // --- 2. CORNER SPEED & BRAKING CALCULATION ---
-    // Evaluate curvature ahead
     const farIdx = (currentIdx + lookSteps * 2) % samples.length;
     const farSample = samples[farIdx];
     const curvatureAngle = Math.abs(targetSample.tangent.angleTo(farSample.tangent));
 
-    // Calculate maximum safe cornering speed
     let safeSpeedKmh = this.physics.topSpeedKmh * this.speedFactor;
     if (curvatureAngle > 0.25) {
-      // Corner ahead! Reduce target speed proportionally
       const cornerTightness = clamp(curvatureAngle / 1.2, 0, 1);
       safeSpeedKmh = THREE.MathUtils.lerp(this.physics.topSpeedKmh * 0.85, 95 * this.corneringGrip, cornerTightness);
     }
@@ -117,20 +113,17 @@ export class AIRacer {
     let nitro = false;
 
     if (this.physics.speedKmh < safeSpeedKmh - 5) {
-      // Accelerate
       throttle = 1.0;
       brake = 0.0;
-      // Use nitro on straights if on Hard/Expert
-      if (curvatureAngle < 0.15 && this.physics.speedKmh > 120 && this.aggression > 0.8 && Math.random() < 0.02) {
+      // Use nitro on straights or when drafting on Hard/Expert
+      if ((curvatureAngle < 0.15 || this.isDrafting) && this.physics.speedKmh > 120 && this.aggression > 0.75 && Math.random() < 0.03) {
         nitro = true;
       }
     } else if (this.physics.speedKmh > safeSpeedKmh + 8) {
-      // Brake into corner
       throttle = 0.0;
       brake = clamp((this.physics.speedKmh - safeSpeedKmh) / 25, 0.4, 1.0);
     } else {
-      // Maintain speed
-      throttle = 0.45;
+      throttle = 0.48;
       brake = 0.0;
     }
 
@@ -138,7 +131,6 @@ export class AIRacer {
     if (this.physics.speedKmh < 8 && throttle > 0.5) {
       this.recoverTimer += dt;
       if (this.recoverTimer > 2.5) {
-        // AI got stuck, orient towards track tangent
         this.physics.rotation.y = Math.atan2(closest.sample.tangent.x, closest.sample.tangent.z);
         this.physics.velocity.set(0, 0, 0);
         this.recoverTimer = 0;
@@ -156,36 +148,43 @@ export class AIRacer {
       nitro
     };
 
+    this.physics.isDrafting = this.isDrafting;
     this.physics.update(inputs, dt, 1.0, trackData);
   }
 
-  evaluateOvertake(carPos, targetSample, otherCars, roadWidth) {
+  evaluateOvertake(carPos, targetSample, allObstacles, roadWidth) {
     let obstacleAhead = false;
     let obstacleLateral = 0;
+    this.isDrafting = false;
 
-    for (let i = 0; i < otherCars.length; i++) {
-      const other = otherCars[i];
+    for (let i = 0; i < allObstacles.length; i++) {
+      const other = allObstacles[i];
       if (other.id === this.id) continue;
 
       const otherPos = other.physics ? other.physics.position : other.position;
+      if (!otherPos) continue;
       const dist = carPos.distanceTo(otherPos);
 
-      if (dist < 22) {
+      if (dist < 26) {
         const toOther = new THREE.Vector3().subVectors(otherPos, carPos);
         const forwardDot = toOther.dot(this.physics.forward);
-        if (forwardDot > 2.0) {
-          // Car is in front of us
+        if (forwardDot > 1.8) {
           obstacleAhead = true;
           obstacleLateral = toOther.dot(this.physics.right);
+
+          // Slipstream drafting detection
+          if (dist < 18 && Math.abs(obstacleLateral) < 2.0) {
+            this.isDrafting = true;
+          }
           break;
         }
       }
     }
 
     if (obstacleAhead) {
-      // Swerve to the opposite side to pass
-      const evadeDir = obstacleLateral > 0 ? -1 : 1;
-      this.overtakeOffset = damp(this.overtakeOffset, evadeDir * 5.0, 4, 0.03);
+      // Swerve into passing lane
+      const evadeDir = obstacleLateral >= 0 ? -1 : 1;
+      this.overtakeOffset = damp(this.overtakeOffset, evadeDir * Math.min(5.5, roadWidth * 0.32), 5, 0.03);
     } else {
       this.overtakeOffset = damp(this.overtakeOffset, 0, 2, 0.03);
     }

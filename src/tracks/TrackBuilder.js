@@ -452,6 +452,10 @@ export class TrackBuilder {
       TrackBuilder.buildDesertScenery(root, samples, roadWidth);
     } else if (theme === 'coastal') {
       TrackBuilder.buildCoastalScenery(root, samples, roadWidth);
+    } else if (theme === 'tokyo') {
+      TrackBuilder.buildTokyoScenery(root, samples, roadWidth);
+    } else if (theme === 'forest') {
+      TrackBuilder.buildForestScenery(root, samples, roadWidth);
     }
   }
 
@@ -710,6 +714,169 @@ export class TrackBuilder {
       frond.rotation.x = 0.45; // drooping outward
       tree.add(frond);
     }
+    return tree;
+  }
+
+  static createTokyoNeonTexture(index = 0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    const signs = [
+      { text: '首都高速', sub: 'SHUTO TOKYO', color: '#00e5ff', bg: '#030712' },
+      { text: '東京 NIGHT', sub: 'NEO CIRCUIT', color: '#d946ef', bg: '#0f172a' },
+      { text: 'NITRO MAX', sub: '超加速 BOOST', color: '#facc15', bg: '#18181b' },
+      { text: 'APEX GT', sub: 'RACING LAB', color: '#10b981', bg: '#022c22' }
+    ];
+
+    const s = signs[index % signs.length];
+
+    ctx.fillStyle = s.bg;
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Glowing border
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(10, 10, 492, 236);
+
+    // Kanji Headline
+    ctx.fillStyle = s.color;
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.text, 256, 100);
+
+    // Subtitle
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px monospace';
+    ctx.fillText(s.sub, 256, 185);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+  }
+
+  static buildTokyoScenery(root, samples, roadWidth) {
+    const neonTextures = [
+      TrackBuilder.createTokyoNeonTexture(0),
+      TrackBuilder.createTokyoNeonTexture(1),
+      TrackBuilder.createTokyoNeonTexture(2),
+      TrackBuilder.createTokyoNeonTexture(3)
+    ];
+
+    const windowTexA = TrackBuilder.createBuildingWindowTexture(0);
+    const windowTexB = TrackBuilder.createBuildingWindowTexture(1);
+
+    const towerMats = [
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, map: windowTexA, roughness: 0.25, metalness: 0.8 }),
+      new THREE.MeshStandardMaterial({ color: 0x1e1b4b, map: windowTexB, roughness: 0.25, metalness: 0.8 })
+    ];
+
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.3 });
+
+    // Place dense cyberpunk skyscrapers & expressway pillars
+    const step = 5;
+    for (let i = 0; i < samples.length; i += step) {
+      const s = samples[i];
+      [-1, 1].forEach((side, sideIdx) => {
+        const dist = roadWidth * 0.5 + 13 + Math.random() * 22;
+        const pos = s.position.clone().addScaledVector(s.right, side * dist);
+
+        const height = 45 + Math.random() * 95;
+        const width = 18 + Math.random() * 16;
+        const depth = 18 + Math.random() * 16;
+
+        const bldgMat = towerMats[(i + sideIdx) % towerMats.length];
+        const bldgGeo = new THREE.BoxGeometry(width, height, depth);
+        const bldg = new THREE.Mesh(bldgGeo, bldgMat);
+        bldg.position.set(pos.x, pos.y + height * 0.5, pos.z);
+        root.add(bldg);
+
+        // Neon Sign attached to front face of tower facing road
+        if (Math.random() > 0.35) {
+          const signTex = neonTextures[(i + sideIdx) % neonTextures.length];
+          const signMat = new THREE.MeshBasicMaterial({ map: signTex });
+          const signGeo = new THREE.PlaneGeometry(12, 6);
+          const signMesh = new THREE.Mesh(signGeo, signMat);
+          const signOffset = pos.clone().addScaledVector(s.right, -side * (width * 0.51));
+          signMesh.position.set(signOffset.x, pos.y + 12 + Math.random() * 25, signOffset.z);
+          signMesh.lookAt(s.position.x, signMesh.position.y, s.position.z);
+          root.add(signMesh);
+        }
+      });
+
+      // Flyover concrete support pillars for elevated sections
+      if (s.position.y > 3.0 && i % 8 === 0) {
+        const pillarGeo = new THREE.CylinderGeometry(1.2, 1.4, s.position.y + 2, 12);
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(s.position.x, (s.position.y) * 0.5, s.position.z);
+        root.add(pillar);
+      }
+
+      // Midnight highway streetlights
+      if (i % 8 === 0) {
+        TrackBuilder.buildStreetLight(root, s, roadWidth * 0.5 + 2.5);
+      }
+    }
+  }
+
+  static buildForestScenery(root, samples, roadWidth) {
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: 0x3f3f46,
+      roughness: 0.95,
+      metalness: 0.05
+    });
+
+    const redwoodFoliage = new THREE.MeshStandardMaterial({
+      color: 0x14532d,
+      roughness: 0.85
+    });
+
+    for (let i = 0; i < samples.length; i += 5) {
+      const s = samples[i];
+      [-1, 1].forEach((side) => {
+        // Redwood groves
+        const treeDist = roadWidth * 0.5 + 5 + Math.random() * 32;
+        const pos = s.position.clone().addScaledVector(s.right, side * treeDist);
+
+        const redwood = TrackBuilder.buildRedwoodTree(redwoodFoliage);
+        redwood.position.set(pos.x, pos.y, pos.z);
+        root.add(redwood);
+
+        // Mossy rock boulders
+        if (Math.random() > 0.55) {
+          const rockPos = s.position.clone().addScaledVector(s.right, side * (roadWidth * 0.5 + 3 + Math.random() * 8));
+          const rockSize = 1.2 + Math.random() * 2.5;
+          const rockGeo = new THREE.DodecahedronGeometry(rockSize, 1);
+          const rock = new THREE.Mesh(rockGeo, rockMat);
+          rock.position.set(rockPos.x, rockPos.y + rockSize * 0.6, rockPos.z);
+          rock.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+          root.add(rock);
+        }
+      });
+    }
+  }
+
+  static buildRedwoodTree(foliageMat) {
+    const tree = new THREE.Group();
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c2b16, roughness: 0.9 });
+    const trunkHeight = 16 + Math.random() * 8;
+    const trunkGeo = new THREE.CylinderGeometry(0.5, 0.9, trunkHeight, 7);
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = trunkHeight * 0.5;
+    tree.add(trunk);
+
+    // Multi-tiered evergreen cone canopy
+    const tiers = 5;
+    for (let t = 0; t < tiers; t++) {
+      const coneRadius = 3.8 - t * 0.6;
+      const coneHeight = 3.6;
+      const coneGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 7);
+      const cone = new THREE.Mesh(coneGeo, foliageMat);
+      cone.position.y = trunkHeight * 0.45 + t * 2.8;
+      tree.add(cone);
+    }
+
     return tree;
   }
 }

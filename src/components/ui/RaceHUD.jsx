@@ -16,6 +16,10 @@ export function RaceHUD({
     redlineRpm = 8000,
     gear = 1,
     nitro = 100,
+    nitroTier = 0,
+    isPerfectNitroReady = false,
+    isDrafting = false,
+    currentSurface = 'Asphalt',
     damage = 0,
     position = 1,
     totalRacers = 8,
@@ -30,7 +34,8 @@ export function RaceHUD({
     isWrongWay = false,
     playerPos = null,
     playerYaw = 0,
-    aiPositions = []
+    aiPositions = [],
+    trafficPositions = []
   } = telemetry || {};
 
   // RPM percentage for radial gauge
@@ -101,9 +106,18 @@ export function RaceHUD({
         </div>
       </div>
 
+      {/* SLIPSTREAM DRAFTING BADGE */}
+      {isDrafting && (
+        <div className="drafting-badge animate-pulse">
+          <span className="draft-chevron">&#187;&#187;</span>
+          <span>SLIPSTREAM DRAFTING +BOOST</span>
+          <span className="draft-chevron">&#171;&#171;</span>
+        </div>
+      )}
+
       {/* DRIFT TELEMETRY CARD */}
       {isDrifting && (
-        <div className="drift-badge animate-pulse">
+        <div className="drift-badge animate-pop">
           <div className="drift-title">DRIFT</div>
           <div className="drift-stats">
             <div>ANGLE: <strong>{Math.round(driftAngle)}&deg;</strong></div>
@@ -113,13 +127,21 @@ export function RaceHUD({
         </div>
       )}
 
-      {/* BOTTOM LEFT: MINIMAP & DAMAGE */}
+      {/* BOTTOM LEFT: MINIMAP, SURFACE BADGE & DAMAGE */}
       <div className="hud-bottom-left">
+        {currentSurface && currentSurface !== 'Asphalt' && (
+          <div className="surface-badge">
+            <span className="surface-dot" />
+            <span className="surface-name">{currentSurface.toUpperCase()}</span>
+          </div>
+        )}
+
         <Minimap
           trackData={trackData}
           playerPos={playerPos}
           playerYaw={playerYaw}
           aiPositions={aiPositions}
+          trafficPositions={trafficPositions}
         />
 
         {/* Damage Indicator */}
@@ -140,14 +162,24 @@ export function RaceHUD({
       {/* BOTTOM RIGHT: SPEEDOMETER, TACHOMETER, GEAR & NITRO */}
       <div className="hud-bottom-right">
         {/* Nitro Meter */}
-        <div className="hud-panel nitro-panel">
+        <div className={`hud-panel nitro-panel ${nitroTier === 2 ? 'perfect-nitro-active' : ''} ${isPerfectNitroReady ? 'perfect-nitro-ready' : ''}`}>
           <div className="nitro-header">
-            <span>NITRO [SHIFT]</span>
-            <span>{Math.round(nitro)}%</span>
+            <span className="nitro-status-title">
+              {nitroTier === 2 ? (
+                <span className="nitro-t2-glow">&#9733; PERFECT NITRO &#9733;</span>
+              ) : nitroTier === 1 ? (
+                <span className="nitro-t1-glow">NITRO BOOST</span>
+              ) : isPerfectNitroReady ? (
+                <span className="nitro-cue-glow">&#9654; HIT [SHIFT] FOR PERFECT NITRO! &#9664;</span>
+              ) : (
+                <span>NITRO [SHIFT]</span>
+              )}
+            </span>
+            <span className="nitro-pct">{Math.round(nitro)}%</span>
           </div>
           <div className="progress-track nitro-track">
             <div
-              className={`progress-fill nitro-fill ${nitro > 20 ? 'active' : ''}`}
+              className={`progress-fill nitro-fill ${nitroTier === 2 ? 'tier-2' : nitroTier === 1 ? 'tier-1' : nitro > 20 ? 'active' : ''}`}
               style={{ width: `${nitro}%` }}
             />
           </div>

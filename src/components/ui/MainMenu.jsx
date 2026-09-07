@@ -91,12 +91,6 @@ export function MainMenu({
         <span>Use <strong>W/A/S/D</strong> or <strong>Arrows</strong> to drive &bull; <strong>Space</strong> Handbrake &bull; <strong>Shift</strong> Nitro &bull; <strong>C</strong> Camera</span>
       </div>
 
-      {/* DEVELOPER CREDIT BADGE (BOTTOM-RIGHT) */}
-      <div className="menu-author-credit">
-        <span className="credit-lead">Developed by</span>
-        <span className="credit-author">Gaurav Gautam</span>
-      </div>
-
       {/* CREDITS MODAL */}
       {showCredits && (
         <div className="modal-backdrop" onClick={() => setShowCredits(false)}>

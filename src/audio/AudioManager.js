@@ -249,10 +249,64 @@ export class AudioManager {
     osc.start();
   }
 
-  setNitroActive(active) {
+  setNitroActive(active, tier = 1) {
     if (!this.isInitialized || !this.nitroGain) return;
     const t = this.ctx.currentTime;
-    this.nitroGain.gain.setTargetAtTime(active ? 0.45 : 0, t, 0.06);
+    const vol = active ? (tier === 2 ? 0.65 : 0.45) : 0;
+    this.nitroGain.gain.setTargetAtTime(vol, t, 0.05);
+  }
+
+  // --- PERFECT NITRO BOOM ---
+  playPerfectNitro() {
+    if (!this.isInitialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(45, t + 0.5);
+
+    gain.gain.setValueAtTime(0.7, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(t);
+    osc.stop(t + 0.65);
+  }
+
+  // --- TURBO BLOW-OFF VALVE ---
+  playBlowOffValve() {
+    if (!this.isInitialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    // High-pitched hiss burst
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.18);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(2800, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start(t);
   }
 
   // --- COLLISION SOUND ---

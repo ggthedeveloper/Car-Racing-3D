@@ -11,63 +11,67 @@ export class CollisionSystem {
 
   /**
    * Check and resolve collisions between vehicle and track boundaries/barriers.
-   * Returns collision info if collision occurred.
+   * Multi-point contact checks (center, front bumper, rear bumper) prevent tunneling.
    */
   resolveTrackBoundaries(vehicle, onCollisionCallback = null) {
     if (!this.trackData || !this.trackData.samples) return null;
 
     const carPos = vehicle.position;
-    const closest = this.trackData.getClosestSample(carPos);
-    if (!closest || !closest.sample) return null;
-
-    const sample = closest.sample;
     const halfRoadWidth = (this.trackData.roadWidth || 16) * 0.5;
     const carHalfWidth = (vehicle.carDef.visuals.width || 1.9) * 0.5;
     const carHalfLength = (vehicle.carDef.visuals.length || 4.4) * 0.5;
-    // Account for car yaw angle relative to track barrier
-    const angleFactor = Math.abs(vehicle.forward.dot(sample.right));
-    const effectiveHalfWidth = carHalfWidth + (carHalfLength - carHalfWidth) * angleFactor;
-    const maxAllowedDist = Math.max(0.5, halfRoadWidth - effectiveHalfWidth);
 
-    // Vector from track center to car
-    const toCar = new THREE.Vector3().subVectors(carPos, sample.position);
-    // Project onto track right vector (perpendicular to racing line)
-    const lateralDist = toCar.dot(sample.right);
+    // Contact test points: Center, Front Bumper, Rear Bumper
+    const testPoints = [
+      { pt: carPos, weight: 1.0 },
+      { pt: carPos.clone().addScaledVector(vehicle.forward, carHalfLength * 0.85), weight: 0.8 },
+      { pt: carPos.clone().addScaledVector(vehicle.forward, -carHalfLength * 0.85), weight: 0.8 }
+    ];
 
-    if (Math.abs(lateralDist) > maxAllowedDist) {
-      // Car has hit the barrier!
-      const penetration = Math.abs(lateralDist) - maxAllowedDist;
-      const barrierSide = Math.sign(lateralDist); // +1 right barrier, -1 left barrier
+    for (let t = 0; t < testPoints.length; t++) {
+      const test = testPoints[t];
+      const closest = this.trackData.getClosestSample(test.pt);
+      if (!closest || !closest.sample) continue;
 
-      // Collision normal points away from barrier towards road center
-      const normal = sample.right.clone().multiplyScalar(-barrierSide);
+      const sample = closest.sample;
+      const angleFactor = Math.abs(vehicle.forward.dot(sample.right));
+      const effectiveHalfWidth = carHalfWidth + (carHalfLength - carHalfWidth) * angleFactor;
+      const maxAllowedDist = Math.max(0.4, halfRoadWidth - effectiveHalfWidth * 0.95);
 
-      // Push car back inside boundary smoothly
-      vehicle.position.addScaledVector(normal, penetration * 1.05);
+      const toCar = new THREE.Vector3().subVectors(test.pt, sample.position);
+      const lateralDist = toCar.dot(sample.right);
 
-      // Velocity component along the barrier normal (negative = moving towards barrier)
-      const velIntoBarrier = vehicle.velocity.dot(normal);
-      if (velIntoBarrier < 0) {
-        // Cancel velocity into barrier so car NEVER gets stuck
-        vehicle.velocity.sub(normal.clone().multiplyScalar(velIntoBarrier));
+      if (Math.abs(lateralDist) > maxAllowedDist) {
+        const penetration = Math.abs(lateralDist) - maxAllowedDist;
+        const barrierSide = Math.sign(lateralDist);
+        const normal = sample.right.clone().multiplyScalar(-barrierSide);
 
-        // Hard impact bounce & feedback
-        if (velIntoBarrier < -1.5) {
-          const impactSpeed = Math.abs(velIntoBarrier);
-          const restitution = 0.35;
-          vehicle.velocity.addScaledVector(normal, impactSpeed * restitution);
-          vehicle.applyCollision(normal, impactSpeed * 0.5, Math.min(15, impactSpeed * 0.6));
+        // Push car back inside boundary smoothly
+        vehicle.position.addScaledVector(normal, penetration * 1.08 * test.weight);
 
-          if (onCollisionCallback) {
-            onCollisionCallback({
-              position: carPos.clone(),
-              normal: normal.clone(),
-              intensity: impactSpeed / 20.0,
-              type: 'barrier'
-            });
+        // Velocity component into barrier
+        const velIntoBarrier = vehicle.velocity.dot(normal);
+        if (velIntoBarrier < 0) {
+          vehicle.velocity.sub(normal.clone().multiplyScalar(velIntoBarrier));
+
+          // Impact bounce
+          if (velIntoBarrier < -1.2) {
+            const impactSpeed = Math.abs(velIntoBarrier);
+            const restitution = 0.32;
+            vehicle.velocity.addScaledVector(normal, impactSpeed * restitution);
+            vehicle.applyCollision(normal, impactSpeed * 0.5, Math.min(14, impactSpeed * 0.5));
+
+            if (onCollisionCallback) {
+              onCollisionCallback({
+                position: test.pt.clone(),
+                normal: normal.clone(),
+                intensity: impactSpeed / 18.0,
+                type: 'barrier'
+              });
+            }
+
+            return { collided: true, type: 'barrier', normal, intensity: impactSpeed };
           }
-
-          return { collided: true, type: 'barrier', normal, intensity: impactSpeed };
         }
       }
     }
@@ -126,6 +130,72 @@ export class CollisionSystem {
         }
 
         return { collided: true, type: 'vehicle', intensity: impactIntensity };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check and resolve collision with a civilian traffic car.
+   * Also detects near-misses for nitro reward!
+   */
+  resolveVehicleTraffic(veh, trafficCar, onCollisionCallback = null) {
+    const distSq = veh.position.distanceToSquared(trafficCar.position);
+    const radiusVeh = 1.3;
+    const radiusTraffic = trafficCar.collisionRadius || 1.4;
+    const minDistance = radiusVeh + radiusTraffic;
+
+    // Near miss detection (close pass within 2.8m without collision)
+    if (distSq < 10.0 && distSq >= minDistance * minDistance) {
+      if (!trafficCar.nearMissRecorded && veh.speedKmh > 75) {
+        trafficCar.nearMissRecorded = true;
+        // Reward player with instant nitro boost
+        if (veh.nitroAmount !== undefined) {
+          veh.nitroAmount = Math.min(veh.nitroMax || 100, veh.nitroAmount + 14);
+        }
+        return { nearMiss: true };
+      }
+    }
+
+    if (distSq < minDistance * minDistance && distSq > 0.0001) {
+      const dist = Math.sqrt(distSq);
+      const overlap = minDistance - dist;
+      const normal = new THREE.Vector3().subVectors(veh.position, trafficCar.position).normalize();
+
+      const trafficMass = trafficCar.mass || 1600;
+      const totalMass = veh.mass + trafficMass;
+      const massRatioVeh = trafficMass / totalMass;
+      const massRatioTraffic = veh.mass / totalMass;
+
+      veh.position.addScaledVector(normal, overlap * massRatioVeh * 1.08);
+      trafficCar.position.addScaledVector(normal, -overlap * massRatioTraffic * 1.08);
+
+      const relVel = new THREE.Vector3().subVectors(veh.velocity, trafficCar.velocity);
+      const velAlongNormal = relVel.dot(normal);
+
+      if (velAlongNormal < 0) {
+        const restitution = 0.40;
+        const impulseMagnitude = -(1 + restitution) * velAlongNormal / (1 / veh.mass + 1 / trafficMass);
+        const impulse = normal.clone().multiplyScalar(impulseMagnitude);
+
+        veh.velocity.addScaledVector(impulse, 1 / veh.mass);
+        trafficCar.velocity.addScaledVector(impulse, -1 / trafficMass);
+
+        const impactIntensity = Math.abs(velAlongNormal);
+        veh.applyCollision(normal, impactIntensity * 0.45, Math.min(12, impactIntensity * 0.45));
+
+        if (onCollisionCallback) {
+          const contactPt = new THREE.Vector3().addVectors(veh.position, trafficCar.position).multiplyScalar(0.5);
+          onCollisionCallback({
+            position: contactPt,
+            normal: normal.clone(),
+            intensity: impactIntensity / 15.0,
+            type: 'traffic'
+          });
+        }
+
+        return { collided: true, type: 'traffic', intensity: impactIntensity };
       }
     }
 

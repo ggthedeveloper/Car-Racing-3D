@@ -49,7 +49,8 @@ export const TRACK_DEFINITIONS = [
       tunnelIndices: [[7, 9]],
       hasOverpass: true,
       treeDensity: 'low',
-      hasOcean: false
+      hasOcean: false,
+      hasTraffic: true
     }
   },
   {
@@ -201,7 +202,111 @@ export const TRACK_DEFINITIONS = [
       hasBridges: true,
       bridgeIndices: [[3, 6]],
       treeDensity: 'medium',
-      treeType: 'palm'
+      treeType: 'palm',
+      hasTraffic: true
+    }
+  },
+  {
+    id: 'tokyo-night',
+    name: 'TOKYO NIGHT',
+    theme: 'tokyo',
+    tagline: 'Shuto Expressway Cyber Circuit',
+    description: 'High-octane midnight battle through neon-soaked metropolitan expressways, glowing underpasses, and multi-level elevated highways under light rain.',
+    difficulty: 'EXPERT',
+    lengthKm: 4.6,
+    defaultLaps: 3,
+    roadWidth: 16.5,
+    barrierHeight: 1.8,
+    ambientColor: 0x1e1b4b,
+    skyColor: 0x09090b,
+    groundColor: 0x0f172a,
+    fogDensity: 0.0018,
+    defaultTime: 'NIGHT',
+    defaultWeather: 'RAIN',
+    controlPoints: [
+      new THREE.Vector3(0, 0, 0),         // Shuto Start Straight
+      new THREE.Vector3(0, 0, 220),
+      new THREE.Vector3(40, 2, 360),      // Shinjuku Flyover ramp
+      new THREE.Vector3(150, 10, 440),    // Level-2 elevated expressway
+      new THREE.Vector3(300, 10, 440),
+      new THREE.Vector3(440, 6, 360),     // Neon canyon curve
+      new THREE.Vector3(480, 0, 200),     // Ramp down to surface boulevard
+      new THREE.Vector3(480, -3, 40),     // Rainbow tunnel approach
+      new THREE.Vector3(400, -3, -120),   // Subterranean neon tunnel
+      new THREE.Vector3(260, 0, -260),    // Tunnel exit
+      new THREE.Vector3(140, 6, -340),    // Bay bridge ascent
+      new THREE.Vector3(0, 8, -380),      // Bay bridge span
+      new THREE.Vector3(-140, 6, -340),   // Bay bridge descent
+      new THREE.Vector3(-280, 2, -260),   // Ginza neon chicane
+      new THREE.Vector3(-360, 0, -120),
+      new THREE.Vector3(-360, 0, 40),     // Shibuya high-speed avenue
+      new THREE.Vector3(-280, 0, 180),    // Hairpin onto main loop
+      new THREE.Vector3(-160, 0, 160),
+      new THREE.Vector3(-60, 0, 60)
+    ],
+    features: {
+      hasBuildings: true,
+      buildingDensity: 'ultra_tokyo',
+      hasStreetlights: true,
+      hasNeonSigns: true,
+      hasTunnels: true,
+      tunnelIndices: [[7, 10]],
+      hasOverpass: true,
+      treeDensity: 'none',
+      hasOcean: false,
+      hasTraffic: true
+    }
+  },
+  {
+    id: 'forest-rally',
+    name: 'PACIFIC RALLY',
+    theme: 'forest',
+    tagline: 'Redwood Mountain Stage',
+    description: 'Intense downhill and uphill rally sprint through towering redwood groves, sweeping timberland crests, dynamic elevation drops, and mixed asphalt/dirt sections.',
+    difficulty: 'HARD',
+    lengthKm: 4.2,
+    defaultLaps: 2,
+    roadWidth: 14.0,
+    barrierHeight: 1.4,
+    ambientColor: 0x14532d,
+    skyColor: 0x60a5fa,
+    groundColor: 0x1c1917,
+    fogDensity: 0.003,
+    defaultTime: 'MORNING',
+    defaultWeather: 'CLEAR',
+    controlPoints: [
+      new THREE.Vector3(0, 2, 0),         // Valley lumber yard straight
+      new THREE.Vector3(20, 4, 180),
+      new THREE.Vector3(80, 12, 300),     // Redwood ridge ascent
+      new THREE.Vector3(200, 24, 380),
+      new THREE.Vector3(320, 36, 340),    // Crest curve 1
+      new THREE.Vector3(400, 42, 220),    // Summit overlook
+      new THREE.Vector3(420, 32, 80),     // Timber switchback 1
+      new THREE.Vector3(340, 22, -60),
+      new THREE.Vector3(380, 14, -200),   // Fast downhill forest slalom
+      new THREE.Vector3(280, 6, -320),    // River gorge crossing
+      new THREE.Vector3(140, 2, -380),
+      new THREE.Vector3(-20, 6, -360),    // Pine valley sweep
+      new THREE.Vector3(-160, 12, -300),  // Western ridge climb
+      new THREE.Vector3(-280, 18, -180),
+      new THREE.Vector3(-340, 14, -40),   // Hairpin down through giant redwoods
+      new THREE.Vector3(-300, 8, 80),
+      new THREE.Vector3(-220, 4, 180),    // Logging road return
+      new THREE.Vector3(-120, 2, 140),
+      new THREE.Vector3(-40, 2, 40)
+    ],
+    features: {
+      hasBuildings: false,
+      hasStreetlights: false,
+      hasNeonSigns: false,
+      hasTunnels: false,
+      hasMountains: true,
+      mountainStyle: 'evergreen_ridge',
+      treeDensity: 'ultra_forest',
+      treeType: 'redwood',
+      hasRocks: true,
+      hasOcean: false,
+      hasTraffic: false
     }
   }
 ];

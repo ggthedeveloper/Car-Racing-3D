@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-export function Minimap({ trackData, playerPos, playerYaw, aiPositions = [] }) {
+export function Minimap({ trackData, playerPos, playerYaw, aiPositions = [], trafficPositions = [] }) {
   const canvasRef = useRef(null);
   const bgCanvasRef = useRef(null);
   const coordsRef = useRef(null);
@@ -84,7 +84,24 @@ export function Minimap({ trackData, playerPos, playerYaw, aiPositions = [] }) {
 
     const { toCanvasX, toCanvasY } = coordsRef.current;
 
-    // Draw AI opponent dots
+    // Draw civilian traffic dots (silver/white)
+    if (trafficPositions && trafficPositions.length > 0) {
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < trafficPositions.length; i++) {
+        const tr = trafficPositions[i];
+        if (!tr.position) continue;
+        const tx = toCanvasX(tr.position.x);
+        const ty = toCanvasY(tr.position.z);
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // Draw AI opponent dots (red)
     for (let i = 0; i < aiPositions.length; i++) {
       const ai = aiPositions[i];
       if (!ai.position) continue;
@@ -120,7 +137,7 @@ export function Minimap({ trackData, playerPos, playerYaw, aiPositions = [] }) {
 
       ctx.restore();
     }
-  }, [playerPos, playerYaw, aiPositions]);
+  }, [playerPos, playerYaw, aiPositions, trafficPositions]);
 
   return (
     <div className="minimap-container">

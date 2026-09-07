@@ -82,22 +82,33 @@ export class ParticleSystem {
     this.scene.add(this.rainPoints);
   }
 
-  emitTireSmoke(position, velocity, intensity = 1.0) {
+  emitTireSmoke(position, velocity, intensity = 1.0, surfaceType = 'smoke') {
     const p = this.smokeParticles.find((part) => part.life <= 0);
     if (!p) return;
 
     p.life = p.maxLife;
-    p.scale = 0.3 * intensity;
+    p.scale = 0.35 * intensity;
     p.mesh.position.copy(position);
     p.mesh.position.y += 0.2;
     p.mesh.scale.set(p.scale, p.scale, p.scale);
-    p.mesh.material.opacity = 0.5 * intensity;
+
+    // Adapt particle color to road surface
+    if (surfaceType === 'dust') {
+      p.mesh.material.color.setHex(0xb45309); // Tan/brown dirt plume
+      p.mesh.material.opacity = 0.45 * intensity;
+    } else if (surfaceType === 'spray') {
+      p.mesh.material.color.setHex(0xbae6fd); // Translucent rain water mist
+      p.mesh.material.opacity = 0.35 * intensity;
+    } else {
+      p.mesh.material.color.setHex(0xdddddd); // White tire smoke
+      p.mesh.material.opacity = 0.55 * intensity;
+    }
     p.mesh.visible = true;
 
     p.velocity.set(
-      (Math.random() - 0.5) * 1.5,
-      0.8 + Math.random() * 0.8,
-      (Math.random() - 0.5) * 1.5
+      (Math.random() - 0.5) * 1.6,
+      0.8 + Math.random() * 0.9,
+      (Math.random() - 0.5) * 1.6
     );
   }
 
@@ -121,7 +132,7 @@ export class ParticleSystem {
     }
   }
 
-  updateNitroFlames(leftPos, rightPos, forwardDir, isNitroActive) {
+  updateNitroFlames(leftPos, rightPos, forwardDir, isNitroActive, nitroTier = 1) {
     if (isNitroActive && leftPos && rightPos) {
       this.leftFlame.visible = true;
       this.rightFlame.visible = true;
@@ -136,10 +147,20 @@ export class ParticleSystem {
       this.leftFlame.lookAt(lookTargetLeft);
       this.rightFlame.lookAt(lookTargetRight);
 
-      // Flicker scale
-      const flicker = 0.8 + Math.random() * 0.4;
-      this.leftFlame.scale.set(flicker, flicker, flicker * 1.3);
-      this.rightFlame.scale.set(flicker, flicker, flicker * 1.3);
+      // Color & Scale based on Nitro Tier
+      if (nitroTier === 2) {
+        // Tier 2: Perfect Nitro (Electric Magenta / Violet with extended plume)
+        this.flameMat.color.setHex(0xd946ef);
+        const flicker = 1.2 + Math.random() * 0.5;
+        this.leftFlame.scale.set(flicker * 1.2, flicker * 1.2, flicker * 1.8);
+        this.rightFlame.scale.set(flicker * 1.2, flicker * 1.2, flicker * 1.8);
+      } else {
+        // Tier 1: Standard Boost (Cyan Blue)
+        this.flameMat.color.setHex(0x00d2ff);
+        const flicker = 0.85 + Math.random() * 0.4;
+        this.leftFlame.scale.set(flicker, flicker, flicker * 1.3);
+        this.rightFlame.scale.set(flicker, flicker, flicker * 1.3);
+      }
     } else {
       this.leftFlame.visible = false;
       this.rightFlame.visible = false;

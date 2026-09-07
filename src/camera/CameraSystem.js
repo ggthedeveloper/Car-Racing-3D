@@ -11,9 +11,10 @@ export class CameraSystem {
     this.shakeIntensity = 0;
 
     this.baseFov = 64;
-    this.maxFov = 82;
+    this.maxFov = 86;
 
     this.cinematicAngle = 0;
+    this.cameraBank = 0;
   }
 
   setMode(mode) {
@@ -28,17 +29,27 @@ export class CameraSystem {
   }
 
   triggerShake(intensity = 0.5) {
-    this.shakeIntensity = Math.min(1.5, this.shakeIntensity + intensity);
+    this.shakeIntensity = Math.min(2.0, this.shakeIntensity + intensity);
   }
 
   update(dt, vehicle) {
     if (!vehicle || !this.camera) return;
 
-    // --- DYNAMIC FOV BASED ON SPEED ---
-    const speedRatio = clamp(vehicle.speedKmh / 280, 0, 1);
-    const targetFov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, speedRatio);
-    this.camera.fov = damp(this.camera.fov, targetFov, 6, dt);
+    // --- DYNAMIC FOV BASED ON SPEED & NITRO BURST ---
+    const speedRatio = clamp(vehicle.speedKmh / 320, 0, 1);
+    let targetFov = THREE.MathUtils.lerp(this.baseFov, this.maxFov, speedRatio);
+    if (vehicle.nitroActive) {
+      targetFov += (vehicle.nitroTier === 2 ? 8.5 : 5.0); // Asphalt-style warp kick
+    }
+    this.camera.fov = damp(this.camera.fov, targetFov, 7, dt);
     this.camera.updateProjectionMatrix();
+
+    // Road surface bump vibration (rumble strips / off-road dirt)
+    if (vehicle.currentSurface && vehicle.currentSurface.name === 'Rumble Strip' && vehicle.speedKmh > 30) {
+      this.triggerShake(0.08);
+    } else if (vehicle.currentSurface && (vehicle.currentSurface.name === 'Dirt' || vehicle.currentSurface.name === 'Grass') && vehicle.speedKmh > 40) {
+      this.triggerShake(0.06);
+    }
 
     // Camera shake calculation
     const shakeOffset = new THREE.Vector3();
@@ -143,5 +154,12 @@ export class CameraSystem {
     // Apply shake and set camera
     this.camera.position.copy(this.currentPos).add(shakeOffset);
     this.camera.lookAt(this.currentTarget.clone().add(shakeOffset));
+
+    // High-speed camera banking into turns
+    if (this.mode === 'CHASE' || this.mode === 'CLOSE_CHASE' || this.mode === 'COCKPIT') {
+      const targetBank = clamp(-(vehicle.lateralSlip || 0) * 0.003 - (vehicle.dynamicRoll || 0) * 0.35, -0.065, 0.065);
+      this.cameraBank = damp(this.cameraBank, targetBank, 10, dt);
+      this.camera.rotation.z += this.cameraBank;
+    }
   }
 }

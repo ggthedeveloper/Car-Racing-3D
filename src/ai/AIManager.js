@@ -56,16 +56,23 @@ export class AIManager {
     }
   }
 
-  update(dt, trackData, playerVehicle, isNightOrFog = false) {
+  update(dt, trackData, playerVehicle, isNightOrFog = false, trafficCars = []) {
     const allCars = [playerVehicle, ...this.racers];
 
     for (let i = 0; i < this.racers.length; i++) {
       const ai = this.racers[i];
-      ai.update(dt, trackData, allCars);
+      ai.update(dt, trackData, allCars, trafficCars);
 
       // Collisions with barriers
       if (this.collisionSystem) {
         this.collisionSystem.resolveTrackBoundaries(ai.physics);
+
+        // Collisions with traffic cars
+        if (trafficCars && trafficCars.length > 0) {
+          trafficCars.forEach((tc) => {
+            this.collisionSystem.resolveVehicleTraffic(ai.physics, tc);
+          });
+        }
       }
 
       // Update 3D visual transforms
