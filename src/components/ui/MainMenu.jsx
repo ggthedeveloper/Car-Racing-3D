@@ -91,6 +91,12 @@ export function MainMenu({
         <span>Use <strong>W/A/S/D</strong> or <strong>Arrows</strong> to drive &bull; <strong>Space</strong> Handbrake &bull; <strong>Shift</strong> Nitro &bull; <strong>C</strong> Camera</span>
       </div>
 
+      {/* DEVELOPER CREDIT BADGE (BOTTOM-RIGHT) */}
+      <div className="menu-author-credit">
+        <span className="credit-lead">Developed by</span>
+        <span className="credit-author">Gaurav Gautam</span>
+      </div>
+
       {/* CREDITS MODAL */}
       {showCredits && (
         <div className="modal-backdrop" onClick={() => setShowCredits(false)}>
@@ -100,6 +106,7 @@ export function MainMenu({
               High-performance realistic 3D web racing game engine built with React, Three.js, procedural PBR shaders, dynamic Pacejka vehicle dynamics, intelligent spline AI, and procedural Web Audio synthesis.
             </p>
             <div className="credits-list">
+              <div><strong>Lead Developer &amp; Architect:</strong> Gaurav Gautam</div>
               <div><strong>Core Systems:</strong> React &bull; Three.js &bull; WebGL &bull; Web Audio API</div>
               <div><strong>Vehicle Physics:</strong> Independent Raycast Springs, Pacejka Slip, Drift Mechanics</div>
               <div><strong>Environment:</strong> Procedural Shaders, Dynamic Weather &amp; Time of Day</div>

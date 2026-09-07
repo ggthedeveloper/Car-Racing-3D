@@ -59,6 +59,10 @@ export class VehiclePhysics {
     // Suspension & Weight Transfer Visuals
     this.pitch = 0;
     this.roll = 0;
+    this.roadPitch = 0;
+    this.roadRoll = 0;
+    this.dynamicPitch = 0;
+    this.dynamicRoll = 0;
     this.suspensionCompression = [0, 0, 0, 0]; // FL, FR, RL, RR
     this.wheelRotations = [0, 0, 0, 0];
 
@@ -71,12 +75,13 @@ export class VehiclePhysics {
 
     // Wheel contact
     this.isGrounded = true;
+
+    // Apply upgrade modifiers
+    this.applyUpgrades(upgrades);
   }
 
-  applyUpgrades() {
+  applyUpgrades(up = {}) {
     const basePhys = this.carDef.physics;
-    const up = this.upgrades;
-
     const engineLvl = up.engine || 0;
     const brakesLvl = up.brakes || 0;
     const tiresLvl = up.tires || 0;
@@ -120,12 +125,16 @@ export class VehiclePhysics {
     this.isDrifting = false;
     this.driftAngle = 0;
     this.currentDriftScore = 0;
+    this.roadPitch = 0;
+    this.roadRoll = 0;
+    this.dynamicPitch = 0;
+    this.dynamicRoll = 0;
     this.pitch = 0;
     this.roll = 0;
     this.damage = 0;
   }
 
-  update(inputs, dt, surfaceFriction = 1.0) {
+  update(inputs, dt, surfaceFriction = 1.0, trackData = null) {
     if (dt <= 0 || isNaN(dt)) return;
     dt = Math.min(dt, 0.05); // prevent physics simulation explosion on frame drop
 
@@ -369,16 +378,52 @@ export class VehiclePhysics {
     // Integrate position
     this.position.addScaledVector(this.velocity, dt);
 
-    // --- SUSPENSION PITCH & ROLL FOR VISUAL REALISM ---
-    // Pitch forward under heavy braking, pitch backward under hard acceleration
-    const accelZ = localAccel.z;
-    const targetPitch = clamp(-accelZ * 0.008, -0.07, 0.07);
-    this.pitch = damp(this.pitch, targetPitch, 8, dt);
+    // --- 3D ROAD ELEVATION & SURFACE ATTACHMENT ---
+    const wheelRadius = this.carDef.visuals.wheelRadius || 0.35;
+    const rideHeight = wheelRadius * 0.95;
 
-    // Roll into turns
+    let roadPitch = 0;
+    let roadRoll = 0;
+
+    if (trackData && trackData.samples) {
+      const closest = trackData.getClosestSample(this.position);
+      if (closest && closest.sample) {
+        const s = closest.sample;
+        const toCar = new THREE.Vector3().subVectors(this.position, s.position);
+        const lateralDist = toCar.dot(s.right);
+        const roadPt = s.position.clone().addScaledVector(s.right, lateralDist);
+
+        // Target Y on top of road plane
+        const targetY = roadPt.y + rideHeight;
+        // Smooth suspension compliance to road surface
+        this.position.y = damp(this.position.y, targetY, 28, dt);
+        // Absolute hard floor clamp: car can NEVER penetrate below road surface!
+        this.position.y = Math.max(this.position.y, roadPt.y + rideHeight * 0.9);
+
+        // Road slope (pitch) and banking (roll)
+        roadPitch = -Math.asin(clamp(s.tangent.y, -0.85, 0.85));
+        roadRoll = Math.asin(clamp(s.right.y, -0.85, 0.85));
+      }
+    } else {
+      // Default flat plane floor (showroom / fallback)
+      this.position.y = Math.max(this.position.y, rideHeight);
+    }
+
+    // --- SUSPENSION PITCH & ROLL COMBINED WITH ROAD ELEVATION ---
+    const accelZ = localAccel.z;
+    this.dynamicPitch = clamp(-accelZ * 0.008, -0.07, 0.07);
+
     const lateralAccel = (totalForceX / this.mass);
-    const targetRoll = clamp(lateralAccel * 0.006, -0.09, 0.09);
-    this.roll = damp(this.roll, targetRoll, 9, dt);
+    this.dynamicRoll = clamp(lateralAccel * 0.006, -0.09, 0.09);
+
+    // Root chassis rotation follows road grade and banking
+    this.roadPitch = damp(this.roadPitch, roadPitch, 15, dt);
+    this.roadRoll = damp(this.roadRoll, roadRoll, 15, dt);
+    this.rotation.x = this.roadPitch;
+    this.rotation.z = this.roadRoll;
+
+    this.pitch = this.roadPitch + this.dynamicPitch;
+    this.roll = this.roadRoll + this.dynamicRoll;
 
     // --- WHEEL ROTATIONS ---
     const wheelCircumference = 2 * Math.PI * (this.carDef.visuals.wheelRadius || 0.35);

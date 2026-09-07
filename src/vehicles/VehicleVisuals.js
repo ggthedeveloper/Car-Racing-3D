@@ -35,10 +35,10 @@ export class VehicleVisuals {
     this.root.position.copy(physics.position);
     this.root.rotation.copy(physics.rotation);
 
-    // 2. Suspension Tilt & Roll on Car Body
+    // 2. Suspension Tilt & Roll on Car Body (relative to chassis root)
     if (this.bodyGroup) {
-      this.bodyGroup.rotation.x = physics.pitch;
-      this.bodyGroup.rotation.z = -physics.roll;
+      this.bodyGroup.rotation.x = physics.dynamicPitch || 0;
+      this.bodyGroup.rotation.z = -(physics.dynamicRoll || 0);
       // Slight vertical compression on bumps/landing
       this.bodyGroup.position.y = (physics.carDef.visuals.wheelRadius || 0.35) * 0.85;
     }

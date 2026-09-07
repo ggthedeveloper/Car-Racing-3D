@@ -156,7 +156,7 @@ export class AIRacer {
       nitro
     };
 
-    this.physics.update(inputs, dt);
+    this.physics.update(inputs, dt, 1.0, trackData);
   }
 
   evaluateOvertake(carPos, targetSample, otherCars, roadWidth) {

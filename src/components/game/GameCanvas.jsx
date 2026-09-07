@@ -263,7 +263,7 @@ function GameCanvasComponent({
 
         // 1. Update Player Physics
         const surfaceFriction = engine.weatherManager.surfaceFriction;
-        engine.playerPhysics.update(rawInputs, dt, surfaceFriction);
+        engine.playerPhysics.update(rawInputs, dt, surfaceFriction, engine.trackData);
 
         // 2. Track & Vehicle Collisions
         if (engine.collisionSystem) {

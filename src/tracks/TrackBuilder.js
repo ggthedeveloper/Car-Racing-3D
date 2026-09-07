@@ -103,34 +103,149 @@ export class TrackBuilder {
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    // Asphalt medium gray - crisp and visible
-    ctx.fillStyle = '#4b5563';
+    // Rich dark asphalt base
+    ctx.fillStyle = '#22252e';
     ctx.fillRect(0, 0, 512, 512);
 
-    // Procedural asphalt noise grain
-    for (let i = 0; i < 6000; i++) {
+    // Procedural asphalt stone aggregates & noise
+    for (let i = 0; i < 7000; i++) {
       const x = Math.random() * 512;
       const y = Math.random() * 512;
-      const gray = Math.floor(65 + Math.random() * 30);
+      const gray = Math.floor(40 + Math.random() * 35);
       ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
       ctx.fillRect(x, y, 2, 2);
     }
 
-    // Outer Solid Bright White Road Lines
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(16, 0, 14, 512);
-    ctx.fillRect(512 - 30, 0, 14, 512);
+    // Racing line tire rubber wear grooves (dark rubber deposited by tires)
+    ctx.fillStyle = 'rgba(12, 14, 18, 0.45)';
+    ctx.fillRect(95, 0, 80, 512);
+    ctx.fillRect(337, 0, 80, 512);
 
-    // Center Vibrant Yellow/Amber Dashed Line
-    ctx.fillStyle = '#fbbf24';
-    const dashLength = 48;
-    const dashGap = 28;
+    // Outer Solid Bright White Road Boundaries
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(14, 0, 12, 512);
+    ctx.fillRect(512 - 26, 0, 12, 512);
+
+    // Center Vibrant Amber/Yellow Dashed Dividing Line
+    ctx.fillStyle = '#f59e0b';
+    const dashLength = 46;
+    const dashGap = 26;
     for (let y = 0; y < 512; y += dashLength + dashGap) {
       ctx.fillRect(256 - 5, y, 10, dashLength);
     }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+  }
+
+  static createSponsorBannerTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    // Barrier sponsor banners in repeating blocks
+    const sponsors = [
+      { name: 'TURBO RUSH', bg: '#090d16', color: '#00e5ff', sub: 'CHAMPIONSHIP', subColor: '#fde047' },
+      { name: 'PIRELLI', bg: '#d90429', color: '#ffd000', sub: 'P ZERO RACING', subColor: '#ffffff' },
+      { name: 'BREMBO', bg: '#dc2626', color: '#ffffff', sub: 'BRAKE SYSTEMS', subColor: '#fecdd3' },
+      { name: 'SHELL', bg: '#f59e0b', color: '#b91c1c', sub: 'V-POWER NITRO', subColor: '#1e293b' },
+      { name: 'MOBIL 1', bg: '#1e3a8a', color: '#ffffff', sub: 'MOTOR OIL', subColor: '#ef4444' },
+      { name: 'APEX GT', bg: '#047857', color: '#a7f3d0', sub: 'PERFORMANCE', subColor: '#ffffff' }
+    ];
+
+    const blockWidth = canvas.width / sponsors.length;
+
+    sponsors.forEach((sp, idx) => {
+      const bx = idx * blockWidth;
+      // Background block
+      ctx.fillStyle = sp.bg;
+      ctx.fillRect(bx, 0, blockWidth, 128);
+
+      // Top and bottom checkered accent stripes
+      const checkSize = 8;
+      for (let cx = 0; cx < blockWidth; cx += checkSize * 2) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bx + cx, 0, checkSize, 6);
+        ctx.fillRect(bx + cx + checkSize, 122, checkSize, 6);
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(bx + cx + checkSize, 0, checkSize, 6);
+        ctx.fillRect(bx + cx, 122, checkSize, 6);
+      }
+
+      // Vertical dividing border
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(bx + blockWidth - 2, 0, 2, 128);
+
+      // Sponsor Title Text
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillStyle = sp.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sp.name, bx + blockWidth * 0.5, 52);
+
+      // Subtitle / Tagline
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillStyle = sp.subColor;
+      ctx.fillText(sp.sub, bx + blockWidth * 0.5, 92);
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
+  static createBuildingWindowTexture(paletteIndex = 0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Concrete facade background
+    const bgColors = ['#111827', '#1e293b', '#0f172a', '#18181b'];
+    ctx.fillStyle = bgColors[paletteIndex % bgColors.length];
+    ctx.fillRect(0, 0, 256, 512);
+
+    // Office window grid
+    const cols = 8;
+    const rows = 20;
+    const winWidth = 22;
+    const winHeight = 16;
+    const padX = (256 - (cols * winWidth)) / (cols + 1);
+    const padY = (512 - (rows * winHeight)) / (rows + 1);
+
+    const warmColors = ['#fef08a', '#fde047', '#fed7aa', '#ffffff'];
+    const coolColors = ['#38bdf8', '#7dd3fc', '#a5f3fc', '#e0f2fe'];
+    const unlitColors = ['#090d16', '#030712', '#0f172a', '#1e293b'];
+
+    for (let r = 0; r < rows; r++) {
+      // Horizontal spandrel line
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(0, r * (winHeight + padY), 256, 2);
+
+      for (let c = 0; c < cols; c++) {
+        const wx = padX + c * (winWidth + padX);
+        const wy = padY + r * (winHeight + padY);
+
+        const rand = Math.random();
+        if (rand > 0.45) {
+          // Lit window
+          const colorList = (paletteIndex % 2 === 0) ? warmColors : coolColors;
+          ctx.fillStyle = colorList[Math.floor(Math.random() * colorList.length)];
+          ctx.fillRect(wx, wy, winWidth, winHeight);
+        } else {
+          // Dark unlit office window
+          ctx.fillStyle = unlitColors[Math.floor(Math.random() * unlitColors.length)];
+          ctx.fillRect(wx, wy, winWidth, winHeight);
+        }
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     return texture;
   }
@@ -193,15 +308,17 @@ export class TrackBuilder {
 
   static buildBarriers(root, samples, halfWidth, barrierHeight) {
     const barrierOffset = 1.0;
+    const sponsorTex = TrackBuilder.createSponsorBannerTexture();
     const barrierMat = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      metalness: 0.8,
-      roughness: 0.4
+      map: sponsorTex,
+      metalness: 0.35,
+      roughness: 0.55
     });
 
     for (let side = -1; side <= 1; side += 2) {
       const barrierGeo = new THREE.BufferGeometry();
       const positions = [];
+      const uvs = [];
       const indices = [];
 
       for (let i = 0; i < samples.length; i++) {
@@ -211,6 +328,11 @@ export class TrackBuilder {
 
         positions.push(basePt.x, basePt.y, basePt.z);
         positions.push(topPt.x, topPt.y, topPt.z);
+
+        // UV mapping along barrier length (sponsor banner repeats every 14m)
+        const u = s.distance / 14.0;
+        uvs.push(u, 0);
+        uvs.push(u, 1);
 
         const currentIdx = i * 2;
         const nextIdx = (i < samples.length - 1) ? currentIdx + 2 : 0;
@@ -225,6 +347,7 @@ export class TrackBuilder {
       }
 
       barrierGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      barrierGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       barrierGeo.setIndex(indices);
       barrierGeo.computeVertexNormals();
 
@@ -333,32 +456,49 @@ export class TrackBuilder {
   }
 
   static buildCityScenery(root, samples, roadWidth) {
-    const bldgColors = [0x334155, 0x475569, 0x1e293b, 0x1e3a8a, 0x0f766e];
-    const bldgMats = bldgColors.map(c => new THREE.MeshStandardMaterial({
-      color: c,
-      roughness: 0.4,
-      metalness: 0.7
+    const windowTexA = TrackBuilder.createBuildingWindowTexture(0);
+    const windowTexB = TrackBuilder.createBuildingWindowTexture(1);
+    const windowTexC = TrackBuilder.createBuildingWindowTexture(2);
+    const windowTextures = [windowTexA, windowTexB, windowTexC];
+
+    const bldgColors = [0x1e293b, 0x0f172a, 0x18181b, 0x1e1b4b, 0x022c22, 0x172554];
+    const bldgMats = windowTextures.map((tex, idx) => new THREE.MeshStandardMaterial({
+      color: bldgColors[idx % bldgColors.length],
+      map: tex,
+      roughness: 0.35,
+      metalness: 0.65
     }));
 
-    const windowColors = [0x38bdf8, 0xfde047, 0xf472b6, 0x4ade80];
-    const windowMats = windowColors.map(wc => new THREE.MeshStandardMaterial({
-      color: wc,
-      emissive: wc,
-      emissiveIntensity: 1.6,
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.8,
+      metalness: 0.3
+    });
+
+    const antennaMat = new THREE.MeshStandardMaterial({
+      color: 0xd1d5db,
+      metalness: 0.9,
       roughness: 0.2
-    }));
+    });
+
+    const beaconMat = new THREE.MeshBasicMaterial({
+      color: 0xff0044
+    });
+
+    const neonColors = [0x00e5ff, 0xff0055, 0x10b981, 0xf59e0b];
+    const neonMats = neonColors.map(nc => new THREE.MeshBasicMaterial({ color: nc }));
 
     // Place buildings along the perimeter of the track
     const step = 6;
     for (let i = 0; i < samples.length; i += step) {
       const s = samples[i];
       [-1, 1].forEach((side, sideIdx) => {
-        const dist = roadWidth * 0.5 + 14 + Math.random() * 22;
+        const dist = roadWidth * 0.5 + 15 + Math.random() * 26;
         const pos = s.position.clone().addScaledVector(s.right, side * dist);
 
-        const height = 30 + Math.random() * 80;
-        const width = 16 + Math.random() * 16;
-        const depth = 16 + Math.random() * 16;
+        const height = 35 + Math.random() * 85;
+        const width = 18 + Math.random() * 16;
+        const depth = 18 + Math.random() * 16;
 
         const bldgMat = bldgMats[(i + sideIdx) % bldgMats.length];
         const bldgGeo = new THREE.BoxGeometry(width, height, depth);
@@ -368,13 +508,34 @@ export class TrackBuilder {
         bldg.receiveShadow = true;
         root.add(bldg);
 
-        // Multiple glowing window bands at different vertical tiers
-        const winMat = windowMats[(i + sideIdx) % windowMats.length];
-        for (let tier = 0.35; tier <= 0.85; tier += 0.25) {
-          const bandGeo = new THREE.BoxGeometry(width * 1.02, 2.5, depth * 1.02);
-          const band = new THREE.Mesh(bandGeo, winMat);
-          band.position.set(pos.x, pos.y + height * tier, pos.z);
-          root.add(band);
+        // Rooftop mechanical penthouse / HVAC housing
+        const roofGeo = new THREE.BoxGeometry(width * 0.5, 4.0, depth * 0.5);
+        const roofBox = new THREE.Mesh(roofGeo, roofMat);
+        roofBox.position.set(pos.x, pos.y + height + 2.0, pos.z);
+        root.add(roofBox);
+
+        // Rooftop antenna spire with blinking aircraft warning beacon
+        if (Math.random() > 0.3) {
+          const spireHeight = 8 + Math.random() * 12;
+          const spireGeo = new THREE.CylinderGeometry(0.15, 0.35, spireHeight, 6);
+          const spire = new THREE.Mesh(spireGeo, antennaMat);
+          spire.position.set(pos.x, pos.y + height + 4.0 + spireHeight * 0.5, pos.z);
+          root.add(spire);
+
+          const beaconGeo = new THREE.SphereGeometry(0.6, 6, 6);
+          const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+          beacon.position.set(pos.x, pos.y + height + 4.0 + spireHeight, pos.z);
+          root.add(beacon);
+        }
+
+        // Sleek vertical architectural neon accent strip facing the road
+        if (Math.random() > 0.5) {
+          const neonMat = neonMats[(i + sideIdx) % neonMats.length];
+          const stripGeo = new THREE.BoxGeometry(0.6, height * 0.7, 0.6);
+          const strip = new THREE.Mesh(stripGeo, neonMat);
+          const stripPos = pos.clone().addScaledVector(s.right, -side * (width * 0.48));
+          strip.position.set(stripPos.x, pos.y + height * 0.5, stripPos.z);
+          root.add(strip);
         }
       });
 
