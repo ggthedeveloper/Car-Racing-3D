@@ -573,6 +573,6 @@ export class VehiclePhysics {
   }
 
   repair() {
-    this.damage = 1;
+    this.damage = 0;
   }
 }
