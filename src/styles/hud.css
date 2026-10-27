@@ -489,3 +489,28 @@
   color: var(--text-muted);
   margin-top: 2px;
 }
+
+.hud-controls-pill {
+  position: absolute;
+  top: 72px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: var(--font-tech);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  .hud-controls-pill {
+    display: none;
+  }
+}

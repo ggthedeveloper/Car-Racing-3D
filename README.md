@@ -108,6 +108,12 @@ npm run build
 npm run preview
 ```
 
+### Automated Testing
+```bash
+# Run unit test suite (Vitest) for vehicle math and collision algorithms
+npm test
+```
+
 ---
 
 ## 🛠️ Tech Stack

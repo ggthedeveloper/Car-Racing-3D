@@ -27,7 +27,7 @@ export const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds) || seconds <= 0) return '--:--.---';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
+  const ms = Math.min(999, Math.round(((seconds % 1) + Number.EPSILON) * 1000));
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 };
 

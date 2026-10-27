@@ -106,6 +106,19 @@ export function RaceHUD({
         </div>
       </div>
 
+      {/* Quick Controls Pill */}
+      <div className="hud-controls-pill">
+        <span>[W/A/S/D] Drive</span>
+        <span>&bull;</span>
+        <span>[SHIFT] Nitro</span>
+        <span>&bull;</span>
+        <span>[SPACE] Drift</span>
+        <span>&bull;</span>
+        <span>[C] Cam</span>
+        <span>&bull;</span>
+        <span>[R] Reset</span>
+      </div>
+
       {/* SLIPSTREAM DRAFTING BADGE */}
       {isDrafting && (
         <div className="drafting-badge animate-pulse">
